@@ -8,12 +8,14 @@ import os
 import cPickle as pickle
 
   
-def load(fname, delimit_c="\t", header_c="#"):
+def load(fp, ftype=None, delimit_c=None, header_c="#"):
   """Load matrix based on file extension. Automatically extract row and column IDs if they exist.
 
   Args:
-    fname: str of filename to load. Use .ext to determine load type.
-    delimit_c: chr of row delimiter for text ftypes
+    fp: file-like object or string
+      The file to read. It must support seek() and read() methods.
+    ftype: str in FTYPES ("npy", "pkl", "txt") of file format. Inferred from filename ext.
+    delimit_c: chr of row delimiter for text ftypes. Inferred from filename ext.
     header_c: chr of header first-line delimiter for text ftypes
   Returns:
     {str: obj} of loaded objects:
@@ -23,25 +25,43 @@ def load(fname, delimit_c="\t", header_c="#"):
         'col_ids': [str] of col IDs, if they were detected. Else, None.
       }
   """
+  FTYPES = ("npy", "pkl", "txt")
+  assert fp
   row_ids, col_ids = None, None
-  ext = fname.rpartition[2].lower()
-  if ext == "npy":
-    return np.load(fname)
-  elif ext == "pkl":
-    return pickle.load(open(fname))
-    
-  # Load from text files.
-  elif ext == "tab":
-    delimit_c = "\t"
-  elif ext == "csv":
-    delimit_c = ","
-  elif ext == "txt":
-    pass
+
+  # fp is a filename string. Get type; open it.
+  if type(fp) == str:
+    ext = fp.rpartition(".")[2]
+    if ext == "tab":
+      if not delimit_c:
+        delimit_c = "\t"
+      ftype = "txt"
+    elif ext == "csv":
+      if not delimit_c:
+        delimit_c = ","
+      ftype = "txt"
+    elif ext == "txt":
+      assert delimit_c, "Delimiter must be specified for .txt extension type."
+      ftype = "txt"
+    elif ext == "npy":
+      ftype = "npy"
+    elif ext == "pkl":
+      ftype = "pkl"
+    else:
+      print "WARNING: Unrecognized file extension %s. Using dtype %s." % (ext, ftype)
+    fp_raw = open(fp, "w")
   else:
-    print "WARNING: Unrecognized file extension '%s' for file %s." % (ext, fname)
+    fp_raw = fp
+
+  assert ftype and ftype in FTYPES, "ftype must be in %s" % ",".join(FTYPES)
+  if ftype == "npy":
+    return np.load(fp_raw)
+  elif ftype == "pkl":
+    return pickle.load(fp_raw)
+  elif ftype == "txt":
+    fp = line_iter(fp_raw, comment_c=header_c)
 
   # If the presence of column and row id are unspecified, check for them by reading the first few lines.
-  fp = line_iter(open(fname), comment_c=header_c)
   first_line = fp.next()
   # If the first two delimited entries of the first line are not numbers, assume that the first line is a header.
   row = first_line.split(delimit_c)
@@ -56,9 +76,9 @@ def load(fname, delimit_c="\t", header_c="#"):
     else:
       has_row_ids = is_numeric(col1)
         
-  # Trash fp and read file into matrix. Handle column and row IDs in fp iterator.
-  del fp
-  fp = line_iter(open(fname), comment_c=header_c)
+  # Rewind fp and read file into matrix. Handle column and row IDs in fp iterator.
+  fp_raw.seek(0)
+  fp = line_iter(fp_raw, comment_c=header_c)
   if col_ids is not None:
     fp.next()
   if has_row_ids:
@@ -77,34 +97,42 @@ def load(fname, delimit_c="\t", header_c="#"):
     }
 
 
-def save(fname, M, row_ids=None, col_ids=None, ftype="pkl", delimit_c=None, fmt="%.6f"):
+def save(fp, M, ftype="pkl", row_ids=None, col_ids=None, delimit_c=None, fmt="%.6f"):
   """Save matrix. Return filename of matrix saved.
   Optionally include row_ids or col_ids if target ftype is text-based.
 
   Args:
-    fname: str of path where to save matrix
+    fp: file-like object or string.
+      The file to read. It must support seek() and read() methods.
     M: np.array of matrix to save
+    ftype: str of saving file type; inferred from fp filename
     row_ids: [str] of row IDs or None
     col_ids: [str] of row IDs or None
     fmt: str of numeric pattern if using ftype type is txt
   """
-  # Default return value; modify if row_ids or col_ids are saved.
-  basename,c,ext = os.path.basename(fname).rpartition('.')
-  ext = ext.lower()
-  if ext == "pkl":
-    ftype = "pkl"
-  elif ext == "npy":
-    ftype = "npy"
-  elif ext == "tab":
-    ftype = "txt"
-    delimit_c = "\t"
-  elif ext == "csv":
-    ftype = "txt"
-    delimit_c = ","
-  else:
-    print "WARNING: Unknown file extension '%s' for file name %s. Using type %s..." % (ext, fname, ftype)
+  FTYPES = ("pkl", "npy", "txt")
+  if type(fp) == str:
+    basename,c,ext = os.path.basename(fp).rpartition('.')
+    ext = ext.lower()
+    if ext == "pkl":
+      ftype = "pkl"
+    elif ext == "npy":
+      ftype = "npy"
+    elif ext == "tab":
+      ftype = "txt"
+      delimit_c = "\t"
+    elif ext == "csv":
+      ftype = "txt"
+      delimit_c = ","
+    elif ext == "txt":
+      assert delimit_c, "Delimiter must be specified for .txt extension type."
+      ftype = "txt"
+    else:
+      assert ftype, "Cannot infer ftype from file extension %s." % (ext)
+      print "WARNING: Unknown file extension '%s' for file name %s. Using type %s..." % (ext, fp, ftype)
+    fp = open(fp, "w")
 
-
+  assert ftype in FTYPES, "ftype must be in %s" % ", ".join(FTYPES)
   if ftype == "txt" and (row_ids is not None or col_ids is not None):
     print "WARNING: row or column IDs cannot be saved for non-text ftype '%s'. Ignoring ID list." % (ext)
   else:
@@ -115,13 +143,14 @@ def save(fname, M, row_ids=None, col_ids=None, ftype="pkl", delimit_c=None, fmt=
       
   # Write matrix
   if ftype == "pkl":
-    pickle.dump(M, open(fname,"w"), protocol=2)
+    pickle.dump(M, fp, protocol=2)
   elif ftype == "npy":
-    np.save(fname, M)
+    np.save(fp, M)
   elif ftype == "txt":
-    fp = open(fname, "w")
+    # Write column header
     if col_ids is not None:
       fp.write(delimit_c.join(col_ids)); fp.write("\n")
+    # Write row IDs
     for i, row in enumerate(M):
       if row_ids is not None:
         fp.write(row_ids[i] + delimit_c)
