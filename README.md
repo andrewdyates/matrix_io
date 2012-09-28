@@ -14,4 +14,4 @@ Use this module to load and save matrices in workflows to handle things like:
 _Functions_:
 
  * `load(fname)`: load a matrix from file
- * `save(fname, M): save a matrix to file, optionally include row and column IDs for text formats
+ * `save(fname, M)`: save a matrix to file, optionally include row and column IDs for text formats
