@@ -76,11 +76,6 @@ def load(fname, delimit_c="\t", header_c="#"):
     'col_ids': col_ids
     }
 
-def save_ids(fname, ids):
-  fp = open(fname, "w")
-  for s in ids:
-    fp.write(s+"\n")
-  return fname
 
 def save(fname, M, row_ids=None, col_ids=None, ftype="pkl", delimit_c=None, fmt="%.6f"):
   """Save matrix. Return filename of matrix saved.
@@ -120,7 +115,7 @@ def save(fname, M, row_ids=None, col_ids=None, ftype="pkl", delimit_c=None, fmt=
       
   # Write matrix
   if ftype == "pkl":
-    pickle.dump(M, open(fname,"w"))
+    pickle.dump(M, open(fname,"w"), protocol=2)
   elif ftype == "npy":
     np.save(fname, M)
   elif ftype == "txt":
@@ -133,7 +128,11 @@ def save(fname, M, row_ids=None, col_ids=None, ftype="pkl", delimit_c=None, fmt=
       fp.write(row_to_txt(row, fmt)); fp.write("\n")
       
 
-
+def save_ids(fname, ids):
+  fp = open(fname, "w")
+  for s in ids:
+    fp.write(s+"\n")
+  return fname
       
 def row_to_txt(row, fmt='%.6f'):
   s = []
