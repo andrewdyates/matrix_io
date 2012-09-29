@@ -86,7 +86,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#"):
     fp = named_row_iter(fp, varlist=row_ids, delimit_c=delimit_c)
 
   # Handle numpy1.5 error regarding missing 'read' and 'readline' functions
-  if numpy.version.version < 1.6:
+  if np.version.version < 1.6:
     fp = FakeFile(fp)
 
   M = np.genfromtxt(fp, usemask=True, delimiter=delimit_c, comments=header_c)
