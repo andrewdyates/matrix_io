@@ -74,7 +74,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#"):
     if not col1:
       continue
     else:
-      has_row_ids = is_numeric(col1)
+      has_row_ids = not is_numeric(col1)
         
   # Rewind fp and read file into matrix. Handle column and row IDs in fp iterator.
   fp_raw.seek(0)
