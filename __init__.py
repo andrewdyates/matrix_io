@@ -49,7 +49,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#"):
       ftype = "pkl"
     else:
       print "WARNING: Unrecognized file extension %s. Using dtype %s." % (ext, ftype)
-    fp_raw = open(fp, "w")
+    fp_raw = open(fp)
   else:
     fp_raw = fp
 
