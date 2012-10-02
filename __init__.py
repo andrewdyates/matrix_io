@@ -93,18 +93,19 @@ def load(fp, ftype=None, delimit_c=None, header_c="#"):
   return {
     'M': M,
     'row_ids': row_ids,
-    'col_ids': col_ids
+    'col_ids': col_ids,
+    'ftype': ftype
     }
 
 
-def save(fp, M, ftype="pkl", row_ids=None, col_ids=None, delimit_c=None, fmt="%.6f"):
+def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, delimit_c=None, fmt="%.6f"):
   """Save matrix. Return filename of matrix saved.
   Optionally include row_ids or col_ids if target ftype is text-based.
 
   Args:
+    M: np.array of matrix to save
     fp: file-like object or string.
       The file to read. It must support seek() and read() methods.
-    M: np.array of matrix to save
     ftype: str of saving file type; inferred from fp filename
     row_ids: [str] of row IDs or None
     col_ids: [str] of row IDs or None
