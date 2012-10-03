@@ -53,13 +53,14 @@ def load(fp, ftype=None, delimit_c=None, header_c="#"):
   else:
     fp_raw = fp
 
-  assert ftype and ftype in FTYPES, "ftype must be in %s" % ",".join(FTYPES)
+  assert ftype and ftype in FTYPES, "ftype must be in %s. If iterator passed rather than filename, specify `ftype` in function parameters." % ", ".join(FTYPES)
   if ftype == "npy":
-    return np.load(fp_raw)
+    return {"M": np.load(fp_raw)}
   elif ftype == "pkl":
-    return pickle.load(fp_raw)
+    return {"M": pickle.load(fp_raw)}
   elif ftype == "txt":
-    fp = line_iter(fp_raw, comment_c=header_c)
+    headers = []
+    fp = line_iter(fp_raw, headers, comment_c=header_c)
 
   # If the presence of column and row id are unspecified, check for them by reading the first few lines.
   first_line = fp.next()
@@ -94,7 +95,8 @@ def load(fp, ftype=None, delimit_c=None, header_c="#"):
     'M': M,
     'row_ids': row_ids,
     'col_ids': col_ids,
-    'ftype': ftype
+    'ftype': ftype,
+    'headers': headers
     }
 
 
@@ -181,12 +183,18 @@ def is_numeric(x):
   else:
     return True
     
-def line_iter(fp, comment_c="#"):
+def line_iter(fp, headers=None, comment_c="#"):
   """Iterate over lines, skipping over comments and blank lines.
   Strip \r if it exists.
+
+  Append headers if headers array provided.
   """
   for line in fp:
-    if line[0] in (comment_c, '\n'):
+    if line[0] in ('\n'):
+      continue
+    if line[0] == comment_c:
+      if headers is not None:
+        headers.append(line)
       continue
     yield line.strip('\r\n')+"\n"
 
