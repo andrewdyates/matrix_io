@@ -112,6 +112,8 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, delimit_c=None, fmt="%.
     row_ids: [str] of row IDs or None
     col_ids: [str] of row IDs or None
     fmt: str of numeric pattern if using ftype type is txt
+  Returns:
+    str of ftype file format in which the matrix was saved.
   """
   FTYPES = ("pkl", "npy", "txt")
   if type(fp) == str:
@@ -158,6 +160,9 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, delimit_c=None, fmt="%.
       if row_ids is not None:
         fp.write(row_ids[i] + delimit_c)
       fp.write(row_to_txt(row, fmt)); fp.write("\n")
+  else:
+    raise Exception, "Unknown file type. Cannot save matrix."
+  return ftype
       
 
 def save_ids(fname, ids):
