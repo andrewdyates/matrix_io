@@ -7,8 +7,8 @@ import numpy as np
 import os
 import cPickle as pickle
 
-  
-def load(fp, ftype=None, delimit_c=None, header_c="#"):
+
+def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float):
   """Load matrix based on file extension. Automatically extract row and column IDs if they exist.
 
   Args:
@@ -61,21 +61,26 @@ def load(fp, ftype=None, delimit_c=None, header_c="#"):
   elif ftype == "txt":
     headers = []
     fp = line_iter(fp_raw, headers, comment_c=header_c)
-
-  # If the presence of column and row id are unspecified, check for them by reading the first few lines.
-  first_line = fp.next()
-  # If the first two delimited entries of the first line are not numbers, assume that the first line is a header.
-  row = first_line.split(delimit_c)
-  if not is_numeric(row[0]) and not is_numeric(row[1]):
-    # Directly set column IDs from this row.
-    col_ids = row
-  # Examine the next line. If the next non-empty first column value is not a number, assume that the first column contains row IDs
-  for line in fp:
-    col1 = line.partition(delimit_c)[0]
-    if not col1:
-      continue
-    else:
-      has_row_ids = not is_numeric(col1)
+    
+  if check_col_ids: 
+    # If the presence of column and row id are unspecified, check for them by reading the first few lines.
+    first_line = fp.next()
+    # If the first two delimited entries of the first line are not numbers, assume that the first line is a header.
+    row = first_line.split(delimit_c)
+    if not is_numeric(row[0]) and not is_numeric(row[1]):
+      # Directly set column IDs from this row.
+      col_ids = row # if col_ids is not set, then it is None
+      
+  if check_row_ids:
+    # Examine the next line. If the next non-empty first column value is not a number, assume that the first column contains row IDs
+    for line in fp:
+      col1 = line.partition(delimit_c)[0]
+      if not col1:
+        continue
+      else:
+        has_row_ids = not is_numeric(col1)
+  else:
+    has_row_ids = False
         
   # Rewind fp and read file into matrix. Handle column and row IDs in fp iterator.
   fp_raw.seek(0)
@@ -90,17 +95,18 @@ def load(fp, ftype=None, delimit_c=None, header_c="#"):
   if np.version.version < 1.6:
     fp = FakeFile(fp)
 
-  M = np.genfromtxt(fp, usemask=True, delimiter=delimit_c, comments=header_c)
+  M = np.genfromtxt(fp, usemask=True, delimiter=delimit_c, comments=header_c, dtype=dtype)
   return {
     'M': M,
     'row_ids': row_ids,
     'col_ids': col_ids,
     'ftype': ftype,
-    'headers': headers
+    'headers': headers,
+    'dtype': dtype
     }
 
 
-def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, delimit_c=None, fmt="%.6f"):
+def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c="\t", fmt="%.6f", comment_c="#"):
   """Save matrix. Return filename of matrix saved.
   Optionally include row_ids or col_ids if target ftype is text-based.
 
@@ -138,8 +144,8 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, delimit_c=None, fmt="%.
     fp = open(fp, "w")
 
   assert ftype in FTYPES, "ftype must be in %s" % ", ".join(FTYPES)
-  if ftype == "txt" and (row_ids is not None or col_ids is not None):
-    print "WARNING: row or column IDs cannot be saved for non-text ftype '%s'. Ignoring ID list." % (ext)
+  if ftype != "txt" and (row_ids is not None or col_ids is not None or headers is not None):
+    print "WARNING: row or column IDs or headers cannot be saved for non-text ftype '%s'. Ignoring ID list." % (ext)
   else:
     if row_ids is not None:
       assert np.size(M,0) == len(row_ids)
@@ -152,6 +158,14 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, delimit_c=None, fmt="%.
   elif ftype == "npy":
     np.save(fp, M)
   elif ftype == "txt":
+    # Write headers
+    if headers is not None:
+      for line in headers:
+        if line[0] != "#":
+          fp.write(comment_c)
+        fp.write(line)
+        if line[-1] != "\n":
+          fp.write("\n")
     # Write column header
     if col_ids is not None:
       fp.write(delimit_c.join(col_ids)); fp.write("\n")
