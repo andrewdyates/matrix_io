@@ -14,8 +14,9 @@ class NamedMatrix(object):
   Initialize with `load()` parameters or provide `load()` return dict.
   """
   def __init__(self, D=None, **kwds):
+    self.M = None
     if D is None:
-      D = load(**kwds)
+      D = load(kwds['fp'], **kwds)
     for k, v in D.items():
       setattr(self, k, v)
     assert self.M is not None
@@ -52,13 +53,13 @@ class NamedMatrix(object):
 
   def e(self, idx_row, idx_col):
     row = self.row(idx_row)
-    if type(idx_col) == str:
-      return row[self.col_idx[idx]]
+    if isinstance(idx_col, basestring):
+      return row[self.col_idx[idx_col]]
     else:
-      return row[idx]
+      return row[idx_col]
 
   def save(self, **kwds):
-    save(M=self.M, **kwds)
+    save(self.M, kwds['fp'], **kwds)
 
 
 def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float):
