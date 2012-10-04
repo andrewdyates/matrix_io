@@ -57,29 +57,34 @@ class NamedMatrix(object):
     self.col_ids = col_ids
     self.col_idx = dict([(s,i) for i,s in enumerate(self.col_ids)])
 
-  def row(self, idx):
-    return self._get(idx, "row")
-  def col(self, idx):
-    return self._get(idx, "col")
+  def row(self, idx, mutate=False):
+    idx = self._idx_to_int(idx, "row")
+    Q = self.M[idx,:]
+    if mutate:
+      self.M = Q
+      if self.row_ids:
+        row_ids = np.array(self.row_ids)[idx]
+        self.load_row_ids(row_ids)
+        self.m = np.size(self.M,0)
+    return Q
+  
+  def col(self, idx, mutate=False):
+    idx = self._idx_to_int(idx, "col")
+    Q = self.M[:,idx]
+    if mutate:
+      self.M = Q
+      if self.col_ids:
+        col_ids = np.array(self.col_ids)[idx]
+        self.load_col_ids(col_ids)
+        self.n = np.size(self.M,1)
+    return Q
 
   def e(self, idx_row, idx_col):
-    dtype_row, dtype_col = idx_type(idx_row), idx_type(idx_col)
-    if dtype_col == "str":
-      if self.col_idx:
-        col_ids = self.col_idx[idx_col]
-      else:
-        raise ValueError, "self.col_idx not defined. Use an integer col index."
-    elif dtype_col == "list":
-      if idx_type(idx_col[0]) == "str":
-        if self.col_idx:
-          col_ids = [self.col_idx[s] for s in idx_col]
-        else:
-          raise ValueError, "self.col_idx not defined. Use an integer col index."
-    return self.row(idx_row)[:,col_ids]
+    idx_row = self._idx_to_int(idx_row, "row")
+    idx_col = self._idx_to_int(idx_col, "col")
+    return self.M[idx_row,idx_col]
 
-
-  def _get(self, idx, q):
-    """Get rows or columns by a int, str, or list of either."""
+  def _idx_to_int(self, idx, q):
     assert q in ("row", "col")
     if q == "row":
       idx_map = self.row_idx
@@ -90,7 +95,7 @@ class NamedMatrix(object):
       if idx_type(idx[0]) == 'str':
         if idx_map:
           # Map strings to int indices
-          idx = self._to_idx(idx, idx_map)
+          idx = [idx_map[s] for s in idx]
         else:
           raise ValueError, "self.%s_idx not defined. Use an integer %s index." % (q, q)
     elif dtype == "str":
@@ -100,13 +105,9 @@ class NamedMatrix(object):
         raise ValueError, "self.%s_idx not defined. Use an integer %s index." % (q, q)
     elif dtype == "int":
       pass
-    if q == "row":
-      return self.M[idx,:]
-    else:
-      return self.M[:,idx]
+    return idx
 
-  def save(self, **kwds):
-    fp = kwds.pop('fp', None)
+  def save(self, fp, **kwds):
     save(self.M, fp, **kwds)
 
 
