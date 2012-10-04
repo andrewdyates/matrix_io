@@ -16,7 +16,8 @@ class NamedMatrix(object):
   def __init__(self, D=None, **kwds):
     self.M = None
     if D is None:
-      D = load(kwds['fp'], **kwds)
+      fp = kwds.pop('fp',None)
+      D = load(fp, **kwds)
     for k, v in D.items():
       setattr(self, k, v)
     assert self.M is not None
@@ -59,7 +60,8 @@ class NamedMatrix(object):
       return row[idx_col]
 
   def save(self, **kwds):
-    save(self.M, kwds['fp'], **kwds)
+    fp = kwds.pop('fp', None)
+    save(self.M, fp, **kwds)
 
 
 def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float):
