@@ -8,6 +8,59 @@ import os
 import cPickle as pickle
 
 
+class NamedMatrix(object):
+  """Named matrix wrapper around load / save module functions.
+
+  Initialize with `load()` parameters or provide `load()` return dict.
+  """
+  def __init__(self, D=None, **kwds):
+    if D is None:
+      D = load(**kwds)
+    for k, v in D.items():
+      setattr(self, k, v)
+    assert self.M is not None
+    if self.row_ids:
+      self.load_row_ids(self.row_ids)
+    if self.col_ids:
+      self.load_col_ids(self.col_ids)
+      
+  def load_row_ids(self, row_ids):
+    assert len(row_ids) == np.size(self.M, 0)
+    self.row_ids = row_ids
+    self.row_idx = dict([(s,i) for i,s in enumerate(self.row_ids)])
+    
+  def load_col_ids(self, col_ids):
+    assert len(col_ids) == np.size(self.M, 1)
+    self.col_ids = col_ids
+    self.col_idx = dict([(s,i) for i,s in enumerate(self.col_ids)])
+    
+  def row(self, idx):
+    if isinstance(idx, basestring) and self.row_ids:
+      return self.M[self.row_idx[idx],:]
+    elif not isinstance(idx, basestring):
+      return self.M[idx,:]
+    else:
+      raise ValueError, "self.row_ids not defined. Use an integer row index."
+    
+  def col(self, idx):
+    if isinstance(idx, basestring) and self.col_ids:
+      return self.M[:,self.col_idx[idx]]
+    elif not isinstance(idx, basestring):
+      return self.M[:,idx]
+    else:
+      raise ValueError, "self.col_ids not defined. Use an integer column index."
+
+  def e(self, idx_row, idx_col):
+    row = self.row(idx_row)
+    if type(idx_col) == str:
+      return row[self.col_idx[idx]]
+    else:
+      return row[idx]
+
+  def save(self, **kwds):
+    save(M=self.M, **kwds)
+
+
 def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float):
   """Load matrix based on file extension. Automatically extract row and column IDs if they exist.
 
@@ -32,7 +85,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
   row_ids, col_ids = None, None
 
   # fp is a filename string. Get type; open it.
-  if type(fp) == str:
+  if isinstance(fp, basestring):
     ext = fp.rpartition(".")[2]
     if ext == "tab":
       if not delimit_c:
@@ -55,7 +108,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
   else:
     fp_raw = fp
 
-  assert ftype and ftype in FTYPES, "ftype must be in %s. If iterator passed rather than filename, specify `ftype` in function parameters." % ", ".join(FTYPES)
+  assert ftype and ftype in FTYPES, "ftype must be in [%s]. Currently, ftype is `%s`. If iterator passed rather than filename, specify `ftype` in function parameters." % (", ".join(FTYPES), ftype)
   if ftype == "npy":
     return {"M": np.load(fp_raw)}
   elif ftype == "pkl":
@@ -128,7 +181,7 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
     str of ftype file format in which the matrix was saved.
   """
   FTYPES = ("pkl", "npy", "txt")
-  if type(fp) == str:
+  if isinstance(fp, basestring):
     basename,c,ext = os.path.basename(fp).rpartition('.')
     ext = ext.lower()
     if ext == "pkl":
