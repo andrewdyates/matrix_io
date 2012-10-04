@@ -11,6 +11,8 @@ import cPickle as pickle
 def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float):
   """Load matrix based on file extension. Automatically extract row and column IDs if they exist.
 
+  First cell, if both in the Row_IDs and Col_IDs, assign to Row_IDs
+
   Args:
     fp: file-like object or string
       The file to read. It must support seek() and read() methods.
@@ -69,7 +71,8 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
     row = first_line.split(delimit_c)
     if not is_numeric(row[0]) and not is_numeric(row[1]):
       # Directly set column IDs from this row.
-      col_ids = row # if col_ids is not set, then it is None
+      row[-1] = row[-1].rstrip('\n\r')
+      col_ids = row  # if col_ids is not set, then it is None
       
   if check_row_ids:
     # Examine the next line. If the next non-empty first column value is not a number, assume that the first column contains row IDs
@@ -81,6 +84,9 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
         has_row_ids = not is_numeric(col1)
   else:
     has_row_ids = False
+  # don't return row ID of column id row
+  if has_row_ids and col_ids is not None:
+    col_ids = col_ids[1:]
         
   # Rewind fp and read file into matrix. Handle column and row IDs in fp iterator.
   fp_raw.seek(0)
@@ -168,7 +174,11 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
           fp.write("\n")
     # Write column header
     if col_ids is not None:
-      fp.write(delimit_c.join(col_ids)); fp.write("\n")
+      row = col_ids
+      # top left cell of first row ID in col ID row.
+      if row_ids is not None:
+        row = ["COL_ID"] + row
+      fp.write(delimit_c.join(row)); fp.write("\n")
     # Write row IDs
     for i, row in enumerate(M):
       if row_ids is not None:
@@ -191,7 +201,11 @@ def row_to_txt(row, fmt='%.6f'):
     if row.mask[i]:
       s.append("")
     else:
-      s.append(fmt%row[i])
+      try:
+        s.append(fmt%row[i])
+      except TypeError:
+        # Handle non-numeric types directly
+        s.append(str(row[i]))
   return "\t".join(s)
 
 def is_numeric(x):
