@@ -7,11 +7,30 @@ import numpy as np
 import os
 import cPickle as pickle
 
+def idx_type(idx):
+  """Return if idx is abstract type (str, num, list)"""
+  if isinstance(idx, basestring):
+    return 'str'
+  try:
+    float(idx) 
+  except TypeError:
+    pass
+  else:
+    return 'num'
+  try:
+    idx[0]
+  except Exception:
+    pass
+  else:
+    return 'list'
+    
+  
 
 class NamedMatrix(object):
   """Named matrix wrapper around load / save module functions.
 
   Initialize with `load()` parameters or provide `load()` return dict.
+  Can index by .row(), .col(), and e() using either label str, int, or list of either.
   """
   def __init__(self, D=None, **kwds):
     self.M = None
@@ -25,6 +44,8 @@ class NamedMatrix(object):
       self.load_row_ids(self.row_ids)
     if self.col_ids:
       self.load_col_ids(self.col_ids)
+    self.m = np.size(self.M,0)
+    self.n = np.size(self.M,1)
       
   def load_row_ids(self, row_ids):
     assert len(row_ids) == np.size(self.M, 0)
@@ -35,29 +56,54 @@ class NamedMatrix(object):
     assert len(col_ids) == np.size(self.M, 1)
     self.col_ids = col_ids
     self.col_idx = dict([(s,i) for i,s in enumerate(self.col_ids)])
-    
+
   def row(self, idx):
-    if isinstance(idx, basestring) and self.row_ids:
-      return self.M[self.row_idx[idx],:]
-    elif not isinstance(idx, basestring):
-      return self.M[idx,:]
-    else:
-      raise ValueError, "self.row_ids not defined. Use an integer row index."
-    
+    return self._get(idx, "row")
   def col(self, idx):
-    if isinstance(idx, basestring) and self.col_ids:
-      return self.M[:,self.col_idx[idx]]
-    elif not isinstance(idx, basestring):
-      return self.M[:,idx]
-    else:
-      raise ValueError, "self.col_ids not defined. Use an integer column index."
+    return self._get(idx, "col")
 
   def e(self, idx_row, idx_col):
-    row = self.row(idx_row)
-    if isinstance(idx_col, basestring):
-      return row[self.col_idx[idx_col]]
+    dtype_row, dtype_col = idx_type(idx_row), idx_type(idx_col)
+    if dtype_col == "str":
+      if self.col_idx:
+        col_ids = self.col_idx[idx_col]
+      else:
+        raise ValueError, "self.col_idx not defined. Use an integer col index."
+    elif dtype_col == "list":
+      if idx_type(idx_col[0]) == "str":
+        if self.col_idx:
+          col_ids = [self.col_idx[s] for s in idx_col]
+        else:
+          raise ValueError, "self.col_idx not defined. Use an integer col index."
+    return self.row(idx_row)[:,col_ids]
+
+
+  def _get(self, idx, q):
+    """Get rows or columns by a int, str, or list of either."""
+    assert q in ("row", "col")
+    if q == "row":
+      idx_map = self.row_idx
+    elif q == "col":
+      idx_map = self.col_idx
+    dtype = idx_type(idx)
+    if dtype == "list":
+      if idx_type(idx[0]) == 'str':
+        if idx_map:
+          # Map strings to int indices
+          idx = self._to_idx(idx, idx_map)
+        else:
+          raise ValueError, "self.%s_idx not defined. Use an integer %s index." % (q, q)
+    elif dtype == "str":
+      if idx_map:
+        idx = idx_map[idx]
+      else:
+        raise ValueError, "self.%s_idx not defined. Use an integer %s index." % (q, q)
+    elif dtype == "int":
+      pass
+    if q == "row":
+      return self.M[idx,:]
     else:
-      return row[idx_col]
+      return self.M[:,idx]
 
   def save(self, **kwds):
     fp = kwds.pop('fp', None)
@@ -183,6 +229,7 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
   Returns:
     str of ftype file format in which the matrix was saved.
   """
+  assert isinstance(fp, basestring) or hasattr(fp, 'write'), "Parameter `fp` must either be a writable file object or a string of a valid file path. (Did you call save(M, fp...) with the parameters in the right order?)"
   FTYPES = ("pkl", "npy", "txt")
   if isinstance(fp, basestring):
     basename,c,ext = os.path.basename(fp).rpartition('.')
