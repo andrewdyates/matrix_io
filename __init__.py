@@ -17,13 +17,7 @@ def idx_type(idx):
     pass
   else:
     return 'num'
-  try:
-    idx[0]
-  except Exception:
-    pass
-  else:
-    return 'list'
-    
+  return 'list'
   
 
 class NamedMatrix(object):
