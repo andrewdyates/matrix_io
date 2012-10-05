@@ -156,9 +156,9 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
 
   assert ftype and ftype in FTYPES, "ftype must be in [%s]. Currently, ftype is `%s`. If iterator passed rather than filename, specify `ftype` in function parameters." % (", ".join(FTYPES), ftype)
   if ftype == "npy":
-    return {"M": np.load(fp_raw)}
+    return {"M": np.load(fp_raw), 'ftype': 'npy'}
   elif ftype == "pkl":
-    return {"M": pickle.load(fp_raw)}
+    return {"M": pickle.load(fp_raw), 'ftype': 'pkl'}
   elif ftype == "txt":
     headers = []
     fp = line_iter(fp_raw, headers, comment_c=header_c)
