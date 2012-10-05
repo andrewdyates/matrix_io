@@ -58,6 +58,7 @@ class NamedMatrix(object):
     self.col_idx = dict([(s,i) for i,s in enumerate(self.col_ids)])
 
   def row(self, idx, mutate=False):
+    # should this also return row ids?
     idx = self._idx_to_int(idx, "row")
     Q = self.M[idx,:]
     if mutate:
@@ -69,6 +70,7 @@ class NamedMatrix(object):
     return Q
   
   def col(self, idx, mutate=False):
+    # should this also return col ids?
     idx = self._idx_to_int(idx, "col")
     Q = self.M[:,idx]
     if mutate:
