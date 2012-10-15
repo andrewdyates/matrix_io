@@ -29,6 +29,7 @@ class NamedMatrix(object):
   def __init__(self, D=None, **kwds):
     self.M = None
     if D is None:
+      assert 'fp' in kwds
       fp = kwds.pop('fp',None)
       D = load(fp, **kwds)
     for k, v in D.items():
@@ -43,12 +44,12 @@ class NamedMatrix(object):
       
   def load_row_ids(self, row_ids):
     assert len(row_ids) == np.size(self.M, 0)
-    self.row_ids = row_ids
+    self.row_ids = np.array(row_ids)
     self.row_idx = dict([(s,i) for i,s in enumerate(self.row_ids)])
     
   def load_col_ids(self, col_ids):
     assert len(col_ids) == np.size(self.M, 1)
-    self.col_ids = col_ids
+    self.col_ids = np.array(col_ids)
     self.col_idx = dict([(s,i) for i,s in enumerate(self.col_ids)])
 
   def row(self, idx, mutate=False):
