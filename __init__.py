@@ -184,9 +184,6 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
         has_row_ids = not is_numeric(col1)
   else:
     has_row_ids = False
-  # don't return row ID of column id row
-  if has_row_ids and col_ids is not None:
-    col_ids = col_ids[1:]
         
   # Rewind fp and read file into matrix. Handle column and row IDs in fp iterator.
   fp_raw.seek(0)
@@ -202,6 +199,12 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
     fp = FakeFile(fp)
 
   M = np.genfromtxt(fp, usemask=True, delimiter=delimit_c, comments=header_c, dtype=dtype)
+
+  # If column IDs has an extra entry, assume that the first entry is a filler label.
+  if has_row_ids and col_ids is not None:
+    if len(col_ids) == M.shape[1]+1:
+      col_ids = col_ids[1:]
+
   return {
     'M': M,
     'row_ids': row_ids,
