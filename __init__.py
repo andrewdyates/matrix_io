@@ -215,7 +215,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
     }
 
 
-def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c="\t", fmt="%.6f", comment_c="#"):
+def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c="\t", fmt="%.6f", comment_c="#", fill_upper_left=True):
   """Save matrix. Return filename of matrix saved.
   Optionally include row_ids or col_ids if target ftype is text-based.
 
@@ -232,6 +232,8 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
   """
   assert isinstance(fp, basestring) or hasattr(fp, 'write'), "Parameter `fp` must either be a writable file object or a string of a valid file path. (Did you call save(M, fp...) with the parameters in the right order?)"
   FTYPES = ("pkl", "npy", "txt")
+  if isinstance(fill_upper_left, basestring) and fill_upper_left.lower() in ('f', 'false', 'none'):
+    fill_upper_left = False
   if isinstance(fp, basestring):
     basename,c,ext = os.path.basename(fp).rpartition('.')
     ext = ext.lower()
@@ -281,7 +283,8 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
       row = col_ids
       # top left cell of first row ID in col ID row.
       if row_ids is not None:
-        row = ["COL_ID"] + row
+        if fill_upper_left:
+          row = ["COL_ID"] + row
       fp.write(delimit_c.join(row)); fp.write("\n")
     # Write row IDs
     for i, row in enumerate(M):
