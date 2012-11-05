@@ -299,7 +299,7 @@ def save_ids(fname, ids):
 def row_to_txt(row, fmt='%.6f'):
   s = []
   for i in range(len(row)):
-    if row.mask[i]:
+    if hasattr(row, 'mask') and row.mask[i]:
       s.append("")
     else:
       try:
