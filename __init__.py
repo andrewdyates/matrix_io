@@ -169,7 +169,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
     first_line = fp.next()
     # If the first two delimited entries of the first line are not numbers, assume that the first line is a header.
     row = first_line.split(delimit_c)
-    if not is_numeric(row[0]) and not is_numeric(row[1]):
+    if not is_numeric(row[0]) and len(row) > 1 and not is_numeric(row[1]):
       # Directly set column IDs from this row.
       row[-1] = row[-1].rstrip('\n\r')
       col_ids = row  # if col_ids is not set, then it is None
