@@ -108,7 +108,7 @@ class NamedMatrix(object):
     save(self.M, fp, **kwds)
 
 
-def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float):
+def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float, force_row_ids=False, force_col_ids=False):
   """Load matrix based on file extension. Automatically extract row and column IDs if they exist.
 
   First cell, if both in the Row_IDs and Col_IDs, assign to Row_IDs
@@ -163,17 +163,17 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
   elif ftype == "txt":
     headers = []
     fp = line_iter(fp_raw, headers, comment_c=header_c)
-    
-  if check_col_ids: 
+
+  if check_col_ids or force_col_ids: 
     # If the presence of column and row id are unspecified, check for them by reading the first few lines.
     first_line = fp.next()
     # If the first two delimited entries of the first line are not numbers, assume that the first line is a header.
     row = first_line.split(delimit_c)
-    if not is_numeric(row[0]) and len(row) > 1 and not is_numeric(row[1]):
+    if (not is_numeric(row[0]) and len(row) > 1 and not is_numeric(row[1])) or force_col_ids:
       # Directly set column IDs from this row.
       row[-1] = row[-1].rstrip('\n\r')
       col_ids = row  # if col_ids is not set, then it is None
-      
+
   if check_row_ids:
     # Examine the next line. If the next non-empty first column value is not a number, assume that the first column contains row IDs
     for line in fp:
@@ -184,6 +184,8 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
         has_row_ids = not is_numeric(col1)
   else:
     has_row_ids = False
+  if force_col_ids:
+    has_row_ids = True
         
   # Rewind fp and read file into matrix. Handle column and row IDs in fp iterator.
   fp_raw.seek(0)
@@ -263,7 +265,7 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
       assert np.size(M,0) == len(row_ids)
     if col_ids is not None:
       assert np.size(M,1) == len(col_ids)
-      
+
   # Write matrix
   if ftype == "pkl":
     pickle.dump(M, fp, protocol=2)
@@ -290,7 +292,7 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
     for i, row in enumerate(M):
       if row_ids is not None:
         fp.write(row_ids[i] + delimit_c)
-      fp.write(row_to_txt(row, fmt)); fp.write("\n")
+      fp.write(row_to_txt(row, fmt, delimit_c)); fp.write("\n")
   else:
     raise Exception, "Unknown file type. Cannot save matrix."
   return ftype
@@ -302,7 +304,7 @@ def save_ids(fname, ids):
     fp.write(s+"\n")
   return fname
       
-def row_to_txt(row, fmt='%.6f'):
+def row_to_txt(row, fmt='%.6f', delimit_c="\t"):
   s = []
   for i in range(len(row)):
     if hasattr(row, 'mask') and row.mask[i]:
@@ -313,7 +315,7 @@ def row_to_txt(row, fmt='%.6f'):
       except TypeError:
         # Handle non-numeric types directly
         s.append(str(row[i]))
-  return "\t".join(s)
+  return delimit_c.join(s)
 
 def is_numeric(x):
   try:
