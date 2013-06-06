@@ -197,8 +197,10 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
     fp = named_row_iter(fp, varlist=row_ids, delimit_c=delimit_c)
 
   # Handle numpy1.5 error regarding missing 'read' and 'readline' functions
-  if np.version.version < 1.6:
+  if np.version.version < 1.6 and np.version.version >= 1.5:
     fp = FakeFile(fp)
+  elif np.version.version < 1.5:
+    raise Exception, "Numpy version < 1.5 not supported. Please upgrade numpy. Your numpy version:", np.version.version
 
   M = np.genfromtxt(fp, usemask=True, delimiter=delimit_c, comments=header_c, dtype=dtype)
 
