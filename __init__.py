@@ -108,7 +108,7 @@ class NamedMatrix(object):
     save(self.M, fp, **kwds)
 
 
-def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float, force_row_ids=False, force_col_ids=False):
+def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check_col_ids=True, dtype=np.float, force_row_ids=False, force_col_ids=False, strip_quotes=True):
   """Load matrix based on file extension. Automatically extract row and column IDs if they exist.
 
   First cell, if both in the Row_IDs and Col_IDs, assign to Row_IDs
@@ -206,6 +206,14 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
   if has_row_ids and col_ids is not None:
     if len(col_ids) == M.shape[1]+1:
       col_ids = col_ids[1:]
+
+
+  # strip quote characters
+  if col_ids and strip_quotes:
+    col_ids = [s.strip("'").strip('"') for s in col_ids]
+  if row_ids and strip_quotes:
+    row_ids = [s.strip("'").strip('"') for s in row_ids]
+
 
   return {
     'M': M,
