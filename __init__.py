@@ -174,14 +174,14 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
       row[-1] = row[-1].rstrip('\n\r')
       col_ids = row  # if col_ids is not set, then it is None
 
-  if check_row_ids:
+  if check_row_ids or force_row_ids:
     # Examine the next line. If the next non-empty first column value is not a number, assume that the first column contains row IDs
     for line in fp:
       col1 = line.partition(delimit_c)[0]
       if not col1:
         continue
       else:
-        has_row_ids = not is_numeric(col1)
+        has_row_ids = not is_numeric(col1) or force_row_ids
   else:
     has_row_ids = False
   if force_col_ids:
