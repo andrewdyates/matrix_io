@@ -218,6 +218,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
 def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c="\t", fmt="%.6f", comment_c="#", fill_upper_left=True):
   """Save matrix. Return filename of matrix saved.
   Optionally include row_ids or col_ids if target ftype is text-based.
+  Does not save "matrix dictionary" as read by "load". Only saves matrix representation.
 
   Args:
     M: np.array of matrix to save
@@ -225,8 +226,9 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
       The file to read. It must support seek() and read() methods.
     ftype: str of saving file type; inferred from fp filename
     row_ids: [str] of row IDs or None
-    col_ids: [str] of row IDs or None
+    col_ids: [str] of col IDs or None
     fmt: str of numeric pattern if using ftype type is txt
+    fill_upper_left: bool if to pad top left corner with "COL_ID" value or to leave blank given both row and col ids
   Returns:
     str of ftype file format in which the matrix was saved.
   """
@@ -257,7 +259,7 @@ def save(M, fp, ftype="pkl", row_ids=None, col_ids=None, headers=None, delimit_c
 
   assert ftype in FTYPES, "ftype must be in %s" % ", ".join(FTYPES)
   if ftype != "txt" and (row_ids is not None or col_ids is not None or headers is not None):
-    print "WARNING: row or column IDs or headers cannot be saved for non-text ftype '%s'. Ignoring ID list." % (ext)
+    print "WARNING: row or column IDs or headers cannot be saved for non-text ftype '%s'. Ignoring ID list." % (ftype)
   else:
     if row_ids is not None:
       assert np.size(M,0) == len(row_ids)
