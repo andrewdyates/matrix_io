@@ -151,7 +151,7 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
       ftype = "pkl"
     else:
       print "WARNING: Unrecognized file extension %s. Using dtype %s." % (ext, ftype)
-    fp_raw = open(fp)
+    fp_raw = open(fp, 'rU')
   else:
     fp_raw = fp
 
@@ -186,6 +186,11 @@ def load(fp, ftype=None, delimit_c=None, header_c="#", check_row_ids=True, check
     has_row_ids = False
   if force_col_ids:
     has_row_ids = True
+
+  # simple warning message to handle edge case original caused by bad line endings
+  if 'has_row_ids' not in locals():
+    print "Warning: edge case. Debug. Possibly a problem reading matrix format."
+    sys.exit(1)
         
   # Rewind fp and read file into matrix. Handle column and row IDs in fp iterator.
   fp_raw.seek(0)
